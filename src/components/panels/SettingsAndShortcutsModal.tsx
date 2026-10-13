@@ -321,8 +321,9 @@ export const SettingsAndShortcutsModal: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               { key: 'SPACE', desc: 'Start or Pause Focus Session' },
+              { key: 'J', desc: 'Thought Stream (Jot Fleeting Thoughts)' },
               { key: 'A', desc: 'Open Atmospheres & Scenes' },
-              { key: 'S', desc: 'Open Spatial Sound Mixer' },
+              { key: 'S', desc: 'Open Spatial Sound Mixer & Waves' },
               { key: 'D', desc: 'Open AI Focus Director' },
               { key: 'B', desc: 'Enter Meditative Breathing Mode' },
               { key: 'G', desc: 'Open Focus Galaxy & Stats' },

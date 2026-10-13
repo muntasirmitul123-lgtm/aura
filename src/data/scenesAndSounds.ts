@@ -13,7 +13,7 @@ export type ClockStyle = 'minimal' | 'serif' | 'flip' | 'analog' | 'word' | 'typ
 
 export type PerformanceMode = 'cinematic' | 'balanced' | 'performance';
 
-export type SoundCategory = 'Nature' | 'Environment' | 'Mechanical' | 'Noise' | 'Music';
+export type SoundCategory = 'Nature' | 'Environment' | 'Mechanical' | 'Noise' | 'Music' | 'Brainwaves';
 
 export interface SoundChannelSpec {
   id: string;
@@ -248,9 +248,49 @@ export const SOUND_CHANNELS: SoundChannelSpec[] = [
   { id: 'lofi', name: 'Nocturne Electric Piano', category: 'Music', defaultPan: 0, description: 'Slow generative Rhodes chords in minor 9ths' },
   { id: 'ambient-pad', name: 'Warm Analog Drone', category: 'Music', defaultPan: 0, description: 'Evolving tape-saturated harmonic pad' },
   { id: 'piano', name: 'Felt Piano Intervals', category: 'Music', defaultPan: -0.1, description: 'Sparse minimalist acoustic notes with long decay' },
+
+  // Brainwaves & Neural Entrainment
+  { id: 'gamma-40hz', name: '40Hz Gamma Focus', category: 'Brainwaves', defaultPan: 0, description: '40Hz neuro-acoustic binding frequency for peak concentration & working memory' },
+  { id: 'gamma-strobe', name: '40Hz Gamma Strobe', category: 'Brainwaves', defaultPan: 0, description: '40Hz isochronic acoustic pulses for high-alertness neural synchronization' },
+  { id: 'beta-20hz', name: '20Hz High Beta Clarity', category: 'Brainwaves', defaultPan: 0, description: 'Active cognitive clarity for complex problem solving & deep coding' },
+  { id: 'beta-14hz', name: '14Hz SMR Alertness', category: 'Brainwaves', defaultPan: 0, description: 'Sensorimotor rhythm for sustained focus without physical fidgeting' },
+  { id: 'alpha-10hz', name: '10Hz Alpha Waves', category: 'Brainwaves', defaultPan: 0, description: 'Relaxed non-drowsy alertness and effortless creative flow state' },
+  { id: 'alpha-8hz', name: '8Hz Deep Alpha Flow', category: 'Brainwaves', defaultPan: 0, description: 'Calm reflective bridge between conscious thought and deep ideation' },
+  { id: 'theta-6hz', name: '6Hz Theta Stillness', category: 'Brainwaves', defaultPan: 0, description: 'Subconscious synthesis, deep intuition and meditative stillness' },
+  { id: 'schumann-783', name: '7.83Hz Schumann Field', category: 'Brainwaves', defaultPan: 0, description: 'Earth fundamental resonance for grounded balance and mental peace' },
+  { id: 'delta-3hz', name: '3Hz Delta Restoration', category: 'Brainwaves', defaultPan: 0, description: 'Ultra-low delta frequencies for deep nervous system calming and rest' },
+  { id: 'solfeggio-528hz', name: '528Hz Miracle Resonance', category: 'Brainwaves', defaultPan: 0, description: 'Ancient Solfeggio frequency for clarity and harmonic mental balance' },
+  { id: 'solfeggio-432hz', name: '432Hz Natural Harmonic', category: 'Brainwaves', defaultPan: 0, description: 'Verdi natural acoustic tuning promoting organic cognitive equilibrium' },
+  { id: 'isochronic-pulse', name: 'Isochronic Alpha Beat', category: 'Brainwaves', defaultPan: 0, description: 'Rhythmic acoustic entrainment beats for steady mental tempo' },
 ];
 
 export const DEFAULT_PRESETS: SavedPreset[] = [
+  {
+    id: 'preset-gamma-focus',
+    name: '40Hz Gamma Deep Work',
+    category: 'Study',
+    sceneId: 'dark-library',
+    sounds: { 'gamma-40hz': 0.65, 'brown-noise': 0.35, fireplace: 0.2 },
+    timerMinutes: 50,
+    breakMinutes: 10,
+    clockStyle: 'serif',
+    fogIntensity: 45,
+    particleIntensity: 40,
+    lightWarmth: 75,
+  },
+  {
+    id: 'preset-alpha-flow',
+    name: '10Hz Alpha Flow',
+    category: 'Coding',
+    sceneId: 'rainy-night',
+    sounds: { 'alpha-10hz': 0.6, rain: 0.55, 'ambient-pad': 0.3 },
+    timerMinutes: 50,
+    breakMinutes: 10,
+    clockStyle: 'minimal',
+    fogIntensity: 55,
+    particleIntensity: 45,
+    lightWarmth: 45,
+  },
   {
     id: 'preset-study',
     name: 'My Study',

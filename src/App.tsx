@@ -11,6 +11,7 @@ import { ScenesAndPresetsPanel } from './components/panels/ScenesAndPresetsPanel
 import { SessionCompleteOverlay } from './components/panels/SessionCompleteOverlay';
 import { SettingsAndShortcutsModal } from './components/panels/SettingsAndShortcutsModal';
 import { SoundMixerPanel } from './components/panels/SoundMixerPanel';
+import { ThoughtStream } from './components/ThoughtStream';
 import { auraActions, useAuraStore } from './store/useAuraStore';
 
 export function App() {
@@ -18,7 +19,6 @@ export function App() {
   const { activeModal, visualConfig, masterVolume, audioInitialized } = state;
 
   const [controlsVisible, setControlsVisible] = useState(true);
-  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [shortcutToast, setShortcutToast] = useState<string | null>(null);
 
@@ -59,11 +59,8 @@ export function App() {
     };
   }, [resetInactivityTimer, activeModal]);
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = () => {
     resetInactivityTimer();
-    const nx = e.clientX / Math.max(1, window.innerWidth);
-    const ny = e.clientY / Math.max(1, window.innerHeight);
-    setMousePos({ x: nx, y: ny });
   };
 
   const handleFirstInteraction = () => {
@@ -131,6 +128,9 @@ export function App() {
       } else if (key === 'g' || key === 't') {
         e.preventDefault();
         auraActions.setActiveModal(stateRef.current.activeModal === 'stats' ? null : 'stats');
+      } else if (key === 'j') {
+        e.preventDefault();
+        auraActions.toggleThoughtInput();
       } else if (key === 'r') {
         e.preventDefault();
         auraActions.resetSession();
@@ -189,8 +189,11 @@ export function App() {
         !controlsVisible && activeModal === null ? 'cursor-none' : ''
       }`}
     >
-      {/* Multi-Layered Living Atmosphere & Particle Engine */}
-      <AtmosphereCanvas mousePos={mousePos} />
+      {/* Multi-Layered Living Atmosphere & Particle Engine (Decoupled, zero-jank cursor physics) */}
+      <AtmosphereCanvas />
+
+      {/* Thought Stream: Ephemeral Fading Overlays & Fleeting Capture HUD */}
+      <ThoughtStream />
 
       {/* Top Navigation & Auto-Hiding Bottom Control Dock */}
       <FloatingChrome

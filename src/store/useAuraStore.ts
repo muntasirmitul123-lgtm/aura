@@ -75,6 +75,15 @@ export interface WidgetVisibility {
   audioVisualizer: boolean;
 }
 
+export interface ThoughtItem {
+  id: string;
+  text: string;
+  createdAt: number;
+  durationMs: number;
+  x: number;
+  y: number;
+}
+
 export interface AuraState {
   activeSceneId: SceneId;
   unlockedSecretScene: boolean;
@@ -99,6 +108,12 @@ export interface AuraState {
   // Tasks
   activeTaskId: string;
   tasks: FocusTask[];
+
+  // Thought Stream
+  activeThoughts: ThoughtItem[];
+  thoughtArchive: Array<{ id: string; text: string; createdAt: number }>;
+  thoughtInputOpen: boolean;
+  thoughtLedgerOpen: boolean;
 
   // Modes & Navigation
   isAmbientMode: boolean;
@@ -205,6 +220,15 @@ function getDefaultState(): AuraState {
     activeTaskId: 'task-1',
     tasks: INITIAL_TASKS,
 
+    // Thought Stream
+    activeThoughts: [],
+    thoughtArchive: [
+      { id: 'th-1', text: 'Refactor audio graph to use single convolution reverb for depth', createdAt: Date.now() - 3600000 * 2 },
+      { id: 'th-2', text: 'Order physical copy of The Creative Act by Rick Rubin', createdAt: Date.now() - 3600000 * 5 },
+    ],
+    thoughtInputOpen: false,
+    thoughtLedgerOpen: false,
+
     isAmbientMode: false,
     activeModal: null,
     hasSeenOnboarding: true,
@@ -265,6 +289,10 @@ function loadState(): AuraState {
       isSessionPaused: false,
       justCompletedSession: null,
       audioInitialized: false,
+      activeThoughts: [],
+      thoughtInputOpen: false,
+      thoughtLedgerOpen: false,
+      thoughtArchive: parsed.thoughtArchive || base.thoughtArchive,
       secondsRemaining: (parsed.workMinutes || base.workMinutes) * 60,
       clockConfig: { ...base.clockConfig, ...(parsed.clockConfig || {}) },
       visualConfig: { ...base.visualConfig, ...(parsed.visualConfig || {}) },
@@ -293,6 +321,7 @@ function saveState() {
       breakMinutes: state.breakMinutes,
       activeTaskId: state.activeTaskId,
       tasks: state.tasks,
+      thoughtArchive: state.thoughtArchive,
       hasSeenOnboarding: state.hasSeenOnboarding,
       clockConfig: state.clockConfig,
       visualConfig: state.visualConfig,
@@ -657,6 +686,71 @@ export const auraActions = {
 
   setLiveWeather(condition: 'rain' | 'clear-night' | 'mist' | 'snow' | null) {
     setState({ liveWeatherCondition: condition });
+  },
+
+  openThoughtInput() {
+    setState({ thoughtInputOpen: true });
+  },
+
+  closeThoughtInput() {
+    setState({ thoughtInputOpen: false });
+  },
+
+  toggleThoughtInput() {
+    setState({ thoughtInputOpen: !state.thoughtInputOpen });
+  },
+
+  captureThought(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const id = `thought-${Date.now()}`;
+    const randomX = 18 + Math.random() * 62;
+    const randomY = Math.random() > 0.5 ? 22 + Math.random() * 16 : 74 + Math.random() * 12;
+
+    const newThought: ThoughtItem = {
+      id,
+      text: trimmed,
+      createdAt: Date.now(),
+      durationMs: 24000,
+      x: randomX,
+      y: randomY,
+    };
+
+    const newArchiveItem = {
+      id,
+      text: trimmed,
+      createdAt: Date.now(),
+    };
+
+    setState({
+      activeThoughts: [newThought, ...state.activeThoughts],
+      thoughtArchive: [newArchiveItem, ...state.thoughtArchive],
+      thoughtInputOpen: false,
+    });
+  },
+
+  dismissThought(id: string) {
+    setState({
+      activeThoughts: state.activeThoughts.filter((t) => t.id !== id),
+    });
+  },
+
+  toggleThoughtLedger() {
+    setState({ thoughtLedgerOpen: !state.thoughtLedgerOpen });
+  },
+
+  setThoughtLedger(open: boolean) {
+    setState({ thoughtLedgerOpen: open });
+  },
+
+  deleteArchivedThought(id: string) {
+    setState({
+      thoughtArchive: state.thoughtArchive.filter((t) => t.id !== id),
+    });
+  },
+
+  clearThoughtArchive() {
+    setState({ thoughtArchive: [] });
   },
 };
 

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import {
   CloudRain,
   Compass,
+  Feather,
   Maximize2,
   Minimize2,
   Sliders,
@@ -72,6 +73,7 @@ export const FloatingChrome: React.FC<{
     workMinutes,
     isMuted,
     activeSounds,
+    thoughtArchive,
     widgets,
     selectedCities,
     liveWeatherCondition,
@@ -384,6 +386,19 @@ export const FloatingChrome: React.FC<{
               <Sparkles className="w-3.5 h-3.5" />
             </button>
           )}
+
+          {/* Thought Stream Trigger */}
+          <button
+            onClick={() => auraActions.toggleThoughtInput()}
+            aria-label="Jot fleeting thought"
+            title="Thought Stream · Jot without breaking focus (Shortcut: J)"
+            className="relative p-1.5 rounded-full text-[#92949A] hover:text-[#F5F2EA] transition-colors cursor-pointer"
+          >
+            <Feather className="w-3.5 h-3.5" />
+            {thoughtArchive.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#C88A55]" />
+            )}
+          </button>
 
           {/* Mute Toggle */}
           <button

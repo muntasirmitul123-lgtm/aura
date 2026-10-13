@@ -14,7 +14,6 @@ interface Particle {
   alpha: number;
   depth: number;
   phase: number;
-  color?: string;
 }
 
 interface Bokeh {
@@ -26,10 +25,23 @@ interface Bokeh {
   phase: number;
 }
 
-export const AtmosphereCanvas: React.FC<{ mousePos: { x: number; y: number } }> = ({ mousePos }) => {
+export const AtmosphereCanvas: React.FC<{ mousePos?: { x: number; y: number } }> = () => {
   const { activeSceneId, customAccentOverride, visualConfig, isSessionActive } = useAuraStore();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, number>>({});
+
+  // Internal high-performance mouse reference: zero React re-renders on cursor motion
+  const mousePosRef = useRef({ x: 0.5, y: 0.5 });
+
+  useEffect(() => {
+    const handlePointerMove = (e: PointerEvent) => {
+      mousePosRef.current.x = e.clientX / Math.max(1, window.innerWidth);
+      mousePosRef.current.y = e.clientY / Math.max(1, window.innerHeight);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    return () => window.removeEventListener('pointermove', handlePointerMove);
+  }, []);
 
   const currentScene = SCENES.find((s) => s.id === activeSceneId) || SCENES[0];
   const accentColor = customAccentOverride || currentScene.accentColor;
@@ -43,17 +55,12 @@ export const AtmosphereCanvas: React.FC<{ mousePos: { x: number; y: number } }> 
       ? PUBLIC_SCENE_FALLBACKS[currentScene.id]
       : undefined;
 
-  // Parallax offsets (silky smooth, physical feel)
   const parallaxFactor = visualConfig.parallaxEnabled && !visualConfig.reducedMotion ? 1 : 0;
-  const bgOffsetX = (mousePos.x - 0.5) * -24 * parallaxFactor;
-  const bgOffsetY = (mousePos.y - 0.5) * -16 * parallaxFactor;
-  const midOffsetX = (mousePos.x - 0.5) * -42 * parallaxFactor;
-  const midOffsetY = (mousePos.y - 0.5) * -28 * parallaxFactor;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
     let animationFrameId: number;
@@ -67,57 +74,57 @@ export const AtmosphereCanvas: React.FC<{ mousePos: { x: number; y: number } }> 
     };
     window.addEventListener('resize', handleResize);
 
-    // Compute particle budget based on Performance Mode & user slider
+    // Compute calm particle budget
     const modeMultiplier =
       visualConfig.performanceMode === 'cinematic'
-        ? 1.25
+        ? 1.0
         : visualConfig.performanceMode === 'balanced'
-        ? 0.75
-        : 0.35;
+        ? 0.65
+        : 0.3;
     const intensityRatio = (visualConfig.particleIntensity / 100) * modeMultiplier;
     const pType = currentScene.particleType;
 
     const baseCount =
       pType === 'rain' || pType === 'cyber-rain'
-        ? 190
+        ? 110
         : pType === 'stars'
-        ? 170
+        ? 95
         : pType === 'snow'
-        ? 130
-        : 85;
+        ? 75
+        : 45;
 
     const count = visualConfig.reducedMotion
-      ? Math.min(25, Math.floor(baseCount * 0.2))
+      ? Math.min(16, Math.floor(baseCount * 0.2))
       : Math.floor(baseCount * intensityRatio);
 
     const particles: Particle[] = Array.from({ length: count }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: Math.random() * 0.7 + 0.3,
-      size: Math.random() * 2.4 + 0.8,
-      alpha: Math.random() * 0.6 + 0.15,
+      x: Math.random() * (width + 80) - 40,
+      y: Math.random() * (height + 80) - 40,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: Math.random() * 0.4 + 0.3,
+      size: Math.random() * 1.8 + 0.8,
+      alpha: Math.random() * 0.45 + 0.15,
       depth: Math.random() * 0.85 + 0.15,
       phase: Math.random() * Math.PI * 2,
     }));
 
-    // Glistening glass condensation droplets for rainy scenes
-    const condensationDroplets = Array.from({ length: 42 }, () => ({
+    // Soft condensation droplets for rainy scenes
+    const condensationDroplets = Array.from({ length: 22 }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      r: Math.random() * 2.2 + 0.8,
-      slideSpeed: Math.random() * 0.18 + 0.02,
-      opacity: Math.random() * 0.45 + 0.15,
-      length: Math.random() * 12 + 4,
+      r: Math.random() * 1.6 + 0.8,
+      slideSpeed: Math.random() * 0.08 + 0.02,
+      opacity: Math.random() * 0.3 + 0.12,
+      length: Math.random() * 6 + 3,
     }));
 
     // Soft bokeh discs for cafe and library
-    const bokehDiscs: Bokeh[] = Array.from({ length: 18 }, () => ({
+    const bokehDiscs: Bokeh[] = Array.from({ length: 10 }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      r: Math.random() * 45 + 18,
-      alpha: Math.random() * 0.14 + 0.04,
-      speed: Math.random() * 0.15 + 0.05,
+      r: Math.random() * 32 + 16,
+      alpha: Math.random() * 0.1 + 0.03,
+      speed: Math.random() * 0.1 + 0.03,
       phase: Math.random() * Math.PI * 2,
     }));
 
@@ -125,137 +132,141 @@ export const AtmosphereCanvas: React.FC<{ mousePos: { x: number; y: number } }> 
     let lastTime = performance.now();
     const audioData = new Uint8Array(32);
 
+    // Exponential low-pass filtered mouse position for butter-smooth, non-aggressive response
+    let smoothMouseX = mousePosRef.current.x;
+    let smoothMouseY = mousePosRef.current.y;
+
     const render = (now: number) => {
       animationFrameId = requestAnimationFrame(render);
       if (document.hidden) return;
 
-      const dt = Math.min(32, now - lastTime) / 16.67;
+      const rawDt = (now - lastTime) / 16.67;
+      const dt = Math.max(0.5, Math.min(2.0, rawDt));
       lastTime = now;
+
+      // Ultra-soft lerp: completely absorbs fast or erratic cursor movements without jitter
+      smoothMouseX += (mousePosRef.current.x - smoothMouseX) * 0.015;
+      smoothMouseY += (mousePosRef.current.y - smoothMouseY) * 0.015;
 
       ctx.clearRect(0, 0, width, height);
 
       // Read audio energy for subtle breathing
       audioEngine.getFrequencyData(audioData);
       const audioEnergy = (audioData[2] + audioData[4] + audioData[6]) / (3 * 255);
-      const audioPulse = 1 + audioEnergy * 0.22;
+      const audioPulse = 1 + audioEnergy * 0.12;
 
-      const fgShiftX = (mousePos.x - 0.5) * -55 * parallaxFactor;
-      const fgShiftY = (mousePos.y - 0.5) * -38 * parallaxFactor;
+      // Gentle, non-aggressive camera shift (max ±3.5px instead of violent ±20px)
+      const cameraShiftX = (smoothMouseX - 0.5) * -3.5 * parallaxFactor;
+      const cameraShiftY = (smoothMouseY - 0.5) * -2.5 * parallaxFactor;
 
       // SCENE-SPECIFIC VISUAL MASTERPIECE EFFECTS
       if (pType === 'ocean-mist') {
-        // Moonlit Ocean: Lunar horizon shimmer path & water caustics
         const horizonY = height * 0.52;
-        const moonX = width * 0.5 + bgOffsetX * 0.4;
-        const moonY = horizonY - 110 + bgOffsetY * 0.4;
+        const moonX = width * 0.5 + cameraShiftX * 0.4;
+        const moonY = horizonY - 110 + cameraShiftY * 0.4;
 
         // Radiant Moon Glow
-        const moonGlow = ctx.createRadialGradient(moonX, moonY, 15, moonX, moonY, height * 0.6);
-        moonGlow.addColorStop(0, `rgba(225, 238, 255, ${0.35 * audioPulse})`);
-        moonGlow.addColorStop(0.2, 'rgba(120, 160, 200, 0.16)');
-        moonGlow.addColorStop(0.55, 'rgba(40, 75, 110, 0.06)');
+        const moonGlow = ctx.createRadialGradient(moonX, moonY, 15, moonX, moonY, height * 0.45);
+        moonGlow.addColorStop(0, `rgba(225, 238, 255, ${0.28 * audioPulse})`);
+        moonGlow.addColorStop(0.2, 'rgba(120, 160, 200, 0.12)');
+        moonGlow.addColorStop(0.55, 'rgba(40, 75, 110, 0.04)');
         moonGlow.addColorStop(1, 'rgba(6, 9, 14, 0)');
         ctx.fillStyle = moonGlow;
         ctx.fillRect(0, 0, width, height);
 
         // Horizon water surface shimmer lines
-        for (let i = 0; i < 35; i++) {
-          const progress = i / 35;
+        for (let i = 0; i < 24; i++) {
+          const progress = i / 24;
           const y = horizonY + Math.pow(progress, 1.45) * (height - horizonY);
-          const waveSpread = 60 + progress * 520;
-          const drift = Math.sin(now * 0.0009 + i * 0.65) * (20 + progress * 40);
-          const alpha = (1 - progress * 0.55) * (0.16 + audioEnergy * 0.08);
+          const waveSpread = 60 + progress * 440;
+          const drift = Math.sin(now * 0.0007 + i * 0.65) * (12 + progress * 24);
+          const alpha = (1 - progress * 0.55) * (0.12 + audioEnergy * 0.05);
           ctx.fillStyle = `rgba(215, 235, 255, ${alpha})`;
-          ctx.fillRect(moonX - waveSpread * 0.5 + drift, y, waveSpread, 1.5 + progress * 2.2);
+          ctx.fillRect(moonX - waveSpread * 0.5 + drift, y, waveSpread, 1.4 + progress * 1.6);
         }
       } else if (pType === 'eclipse') {
-        // Solaris Eclipse: Pulsing golden coronal flares
-        const cx = width * 0.5 + bgOffsetX * 0.5;
-        const cy = height * 0.5 + bgOffsetY * 0.5;
+        const cx = width * 0.5 + cameraShiftX * 0.5;
+        const cy = height * 0.5 + cameraShiftY * 0.5;
         const radius = Math.min(width, height) * 0.22;
 
-        // Multi-tier solar corona
-        const corona = ctx.createRadialGradient(cx, cy, radius * 0.9, cx, cy, radius * 2.6 * audioPulse);
-        corona.addColorStop(0, 'rgba(255, 225, 175, 0.55)');
-        corona.addColorStop(0.18, 'rgba(230, 165, 80, 0.26)');
-        corona.addColorStop(0.48, 'rgba(140, 80, 35, 0.08)');
+        const corona = ctx.createRadialGradient(cx, cy, radius * 0.9, cx, cy, radius * 2.3 * audioPulse);
+        corona.addColorStop(0, 'rgba(255, 225, 175, 0.45)');
+        corona.addColorStop(0.18, 'rgba(230, 165, 80, 0.20)');
+        corona.addColorStop(0.48, 'rgba(140, 80, 35, 0.05)');
         corona.addColorStop(1, 'rgba(6, 5, 4, 0)');
         ctx.fillStyle = corona;
         ctx.beginPath();
-        ctx.arc(cx, cy, radius * 2.6 * audioPulse, 0, Math.PI * 2);
+        ctx.arc(cx, cy, radius * 2.3 * audioPulse, 0, Math.PI * 2);
         ctx.fill();
 
-        // Dark celestial core
         ctx.fillStyle = '#060504';
         ctx.beginPath();
         ctx.arc(cx, cy, radius * 0.97, 0, Math.PI * 2);
         ctx.fill();
 
-        // Shimmering diamond coronal rim
-        ctx.strokeStyle = `rgba(255, 235, 200, ${0.45 + Math.sin(now * 0.003) * 0.15})`;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = `rgba(255, 235, 200, ${0.35 + Math.sin(now * 0.003) * 0.1})`;
+        ctx.lineWidth = 1.6;
         ctx.beginPath();
         ctx.arc(cx, cy, radius * 0.975, 0, Math.PI * 2);
         ctx.stroke();
       } else if (pType === 'snow') {
-        // Winter Cabin: Warm hearth embers rising + frosted window edges
         const hearthX = width * 0.5;
         const hearthY = height * 1.02;
-        const hearthGrad = ctx.createRadialGradient(hearthX, hearthY, 20, hearthX, hearthY, height * 0.8);
-        const flicker = Math.sin(now * 0.006) * 0.04 + Math.cos(now * 0.014) * 0.02;
-        hearthGrad.addColorStop(0, `rgba(240, 145, 75, ${0.28 + flicker + audioEnergy * 0.1})`);
-        hearthGrad.addColorStop(0.45, `rgba(175, 90, 40, ${0.11 + flicker * 0.5})`);
+        const hearthGrad = ctx.createRadialGradient(hearthX, hearthY, 20, hearthX, hearthY, height * 0.65);
+        const flicker = Math.sin(now * 0.004) * 0.02 + Math.cos(now * 0.01) * 0.01;
+        hearthGrad.addColorStop(0, `rgba(240, 145, 75, ${0.22 + flicker})`);
+        hearthGrad.addColorStop(0.45, `rgba(175, 90, 40, ${0.08 + flicker * 0.4})`);
         hearthGrad.addColorStop(1, 'rgba(11, 9, 8, 0)');
         ctx.fillStyle = hearthGrad;
         ctx.fillRect(0, 0, width, height);
       } else if (pType === 'stars') {
-        // Deep Space: Cosmic nebula filament glow
         const nebula = ctx.createRadialGradient(
-          width * 0.58 + bgOffsetX,
-          height * 0.42 + bgOffsetY,
+          width * 0.58 + cameraShiftX * 0.4,
+          height * 0.42 + cameraShiftY * 0.4,
           40,
-          width * 0.5 + bgOffsetX,
-          height * 0.5 + bgOffsetY,
-          Math.max(width, height) * 0.72
+          width * 0.5 + cameraShiftX * 0.4,
+          height * 0.5 + cameraShiftY * 0.4,
+          Math.max(width, height) * 0.62
         );
-        nebula.addColorStop(0, `rgba(145, 115, 195, ${0.22 * audioPulse})`);
-        nebula.addColorStop(0.35, 'rgba(75, 105, 160, 0.12)');
-        nebula.addColorStop(0.7, 'rgba(45, 55, 90, 0.05)');
+        nebula.addColorStop(0, `rgba(145, 115, 195, ${0.16 * audioPulse})`);
+        nebula.addColorStop(0.35, 'rgba(75, 105, 160, 0.08)');
+        nebula.addColorStop(0.7, 'rgba(45, 55, 90, 0.03)');
         nebula.addColorStop(1, 'rgba(5, 6, 9, 0)');
         ctx.fillStyle = nebula;
         ctx.fillRect(0, 0, width, height);
       } else if (pType === 'dust') {
-        // Midnight Cafe & Library: Warm bokeh discs drifting slowly
         bokehDiscs.forEach((b) => {
           b.y -= b.speed * dt;
-          b.x += Math.sin(now * 0.0005 + b.phase) * 0.2 * dt;
+          b.x += Math.sin(now * 0.0003 + b.phase) * 0.12 * dt;
           if (b.y < -b.r) {
             b.y = height + b.r;
             b.x = Math.random() * width;
           }
-          const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-          grad.addColorStop(0, `rgba(235, 190, 130, ${b.alpha * 1.5})`);
-          grad.addColorStop(0.6, `rgba(200, 150, 90, ${b.alpha * 0.6})`);
+          const renderBx = b.x + cameraShiftX * 0.3;
+          const renderBy = b.y;
+          const grad = ctx.createRadialGradient(renderBx, renderBy, 0, renderBx, renderBy, b.r);
+          grad.addColorStop(0, `rgba(235, 190, 130, ${b.alpha * 1.2})`);
+          grad.addColorStop(0.6, `rgba(200, 150, 90, ${b.alpha * 0.45})`);
           grad.addColorStop(1, 'rgba(200, 150, 90, 0)');
           ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          ctx.arc(renderBx, renderBy, b.r, 0, Math.PI * 2);
           ctx.fill();
         });
       }
 
-      // Occasional distant atmospheric lightning in rain scenes
+      // Lightning in rain scenes
       if ((pType === 'rain' || pType === 'cyber-rain') && !visualConfig.reducedMotion) {
-        if (Math.random() < 0.0008 && lightningFlash <= 0.01) {
-          lightningFlash = 0.22;
+        if (Math.random() < 0.0004 && lightningFlash <= 0.01) {
+          lightningFlash = 0.16;
         }
         if (lightningFlash > 0.005) {
           ctx.fillStyle =
             pType === 'cyber-rain'
-              ? `rgba(160, 220, 245, ${lightningFlash * 1.2})`
-              : `rgba(205, 225, 250, ${lightningFlash})`;
+              ? `rgba(160, 220, 245, ${lightningFlash})`
+              : `rgba(205, 225, 250, ${lightningFlash * 0.85})`;
           ctx.fillRect(0, 0, width, height);
-          lightningFlash *= 0.91;
+          lightningFlash *= 0.92;
         }
 
         // Wet glass sliding droplets
@@ -267,100 +278,123 @@ export const AtmosphereCanvas: React.FC<{ mousePos: { x: number; y: number } }> 
           }
           ctx.fillStyle = `rgba(230, 242, 255, ${d.opacity})`;
           ctx.beginPath();
-          ctx.ellipse(d.x, d.y, d.r, d.length * 0.4, 0, 0, Math.PI * 2);
+          ctx.ellipse(d.x, d.y, d.r, d.length * 0.35, 0, 0, Math.PI * 2);
           ctx.fill();
         });
       }
 
-      // RENDER ADVANCED PARTICLE SYSTEM
+      // SERENE, NON-AGGRESSIVE PARTICLE RENDERING
+      // Stable velocities prevent jitter or whipping when cursor moves across the screen
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-        const px = (p.x + fgShiftX * p.depth + width) % width;
-        const py = (p.y + fgShiftY * p.depth + height) % height;
 
         if (pType === 'rain' || pType === 'cyber-rain') {
-          const speed = (11 + p.depth * 13) * (visualConfig.reducedMotion ? 0.2 : 1);
+          // Stable rainfall speed
+          const speed = (5.0 + p.depth * 4.5) * (visualConfig.reducedMotion ? 0.2 : 1);
           p.y += speed * dt;
-          p.x -= speed * 0.14 * dt;
-          if (p.y > height) {
+          p.x -= speed * 0.07 * dt;
+
+          if (p.y > height + 25) {
             p.y = -25;
-            p.x = Math.random() * width;
+            p.x = Math.random() * (width + 60);
           }
+
+          // Gentle horizontal parallax without vertical jerking
+          const renderX = p.x + cameraShiftX * (p.depth * 0.2);
+          const renderY = p.y;
 
           if (pType === 'cyber-rain') {
             ctx.strokeStyle =
               i % 4 === 0
-                ? `rgba(110, 225, 255, ${p.alpha * 0.65})`
+                ? `rgba(110, 225, 255, ${p.alpha * 0.5})`
                 : i % 4 === 1
-                ? `rgba(255, 120, 185, ${p.alpha * 0.55})`
-                : `rgba(220, 235, 250, ${p.alpha * 0.45})`;
+                ? `rgba(255, 120, 185, ${p.alpha * 0.42})`
+                : `rgba(220, 235, 250, ${p.alpha * 0.35})`;
           } else {
-            ctx.strokeStyle = `rgba(215, 230, 248, ${p.alpha * 0.48})`;
+            ctx.strokeStyle = `rgba(215, 230, 248, ${p.alpha * 0.38})`;
           }
-          ctx.lineWidth = p.depth * 1.25;
+          ctx.lineWidth = p.depth * 1.05;
           ctx.beginPath();
-          ctx.moveTo(px, py);
-          ctx.lineTo(px - 3.2 * p.depth, py + 22 * p.depth);
+          ctx.moveTo(renderX, renderY);
+          ctx.lineTo(renderX - 1.8 * p.depth, renderY + 12 * p.depth);
           ctx.stroke();
         } else if (pType === 'snow') {
-          const speedY = (0.55 + p.depth * 0.95) * (visualConfig.reducedMotion ? 0.25 : 1);
+          // Soft floating snowflakes
+          const speedY = (0.32 + p.depth * 0.48) * (visualConfig.reducedMotion ? 0.25 : 1);
           p.y += speedY * dt;
-          p.x += Math.sin(now * 0.0007 + p.phase) * 0.45 * dt;
-          if (p.y > height) {
+          p.x += Math.sin(now * 0.0005 + p.phase) * 0.25 * dt;
+
+          if (p.y > height + 10) {
             p.y = -10;
             p.x = Math.random() * width;
           }
 
-          ctx.fillStyle = `rgba(248, 246, 240, ${p.alpha * 0.8})`;
+          const renderX = p.x + cameraShiftX * (p.depth * 0.25);
+          const renderY = p.y;
+
+          ctx.fillStyle = `rgba(248, 246, 240, ${p.alpha * 0.7})`;
           ctx.beginPath();
-          ctx.arc(px, py, p.size * 1.35, 0, Math.PI * 2);
+          ctx.arc(renderX, renderY, p.size * 1.05, 0, Math.PI * 2);
           ctx.fill();
         } else if (pType === 'stars') {
-          p.x -= 0.035 * p.depth * dt;
-          if (p.x < 0) p.x = width;
-          const twinkle = 0.6 + 0.4 * Math.sin(now * 0.0018 + p.phase);
+          // Slow starlight drift
+          p.x -= 0.015 * p.depth * dt;
+          if (p.x < -10) p.x = width + 10;
+
+          const twinkle = 0.7 + 0.3 * Math.sin(now * 0.0012 + p.phase);
+          const renderX = p.x + cameraShiftX * (p.depth * 0.3);
+          const renderY = p.y;
+
           ctx.fillStyle =
             i % 6 === 0
-              ? `rgba(180, 205, 255, ${p.alpha * twinkle * 1.1})`
+              ? `rgba(180, 205, 255, ${p.alpha * twinkle * 1.05})`
               : i % 6 === 1
-              ? `rgba(255, 225, 195, ${p.alpha * twinkle * 0.95})`
-              : `rgba(245, 242, 250, ${p.alpha * twinkle})`;
+              ? `rgba(255, 225, 195, ${p.alpha * twinkle * 0.9})`
+              : `rgba(245, 242, 250, ${p.alpha * twinkle * 0.95})`;
           ctx.beginPath();
-          ctx.arc(px, py, p.size * 0.85, 0, Math.PI * 2);
+          ctx.arc(renderX, renderY, p.size * 0.8, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          // Floating dust motes / fireflies / forest spores
-          p.y -= (0.14 + p.depth * 0.22) * (visualConfig.reducedMotion ? 0.2 : 1) * dt;
-          p.x += Math.sin(now * 0.0005 + p.phase) * 0.22 * dt;
+          // Floating gentle dust motes / forest spores
+          p.y -= (0.07 + p.depth * 0.12) * (visualConfig.reducedMotion ? 0.2 : 1) * dt;
+          p.x += Math.sin(now * 0.0003 + p.phase) * 0.14 * dt;
+
           if (p.y < -12) {
             p.y = height + 12;
             p.x = Math.random() * width;
           }
 
-          const pulse = 0.5 + 0.5 * Math.sin(now * 0.0012 + p.phase);
+          const renderX = p.x + cameraShiftX * (p.depth * 0.25);
+          const renderY = p.y;
+
+          const pulse = 0.55 + 0.45 * Math.sin(now * 0.0008 + p.phase);
           if (pType === 'mist-leaves') {
-            // Glowing forest fireflies
-            ctx.fillStyle = `rgba(185, 245, 200, ${p.alpha * pulse * 0.75})`;
+            ctx.fillStyle = `rgba(185, 245, 200, ${p.alpha * pulse * 0.65})`;
           } else {
-            // Warm golden dust motes
-            ctx.fillStyle = `rgba(245, 218, 175, ${p.alpha * pulse * 0.85})`;
+            ctx.fillStyle = `rgba(245, 218, 175, ${p.alpha * pulse * 0.7})`;
           }
           ctx.beginPath();
-          ctx.arc(px, py, p.size * (pType === 'mist-leaves' ? 1.4 : 1.1), 0, Math.PI * 2);
+          ctx.arc(renderX, renderY, p.size * (pType === 'mist-leaves' ? 1.1 : 0.85), 0, Math.PI * 2);
           ctx.fill();
         }
       }
 
-      // Interactive Cursor Ambient Spotlight (makes the scene physically respond to mouse)
-      if (parallaxFactor > 0 && !visualConfig.reducedMotion) {
-        const spotX = mousePos.x * width;
-        const spotY = mousePos.y * height;
-        const spotGrad = ctx.createRadialGradient(spotX, spotY, 0, spotX, spotY, 320);
-        spotGrad.addColorStop(0, 'rgba(255, 250, 240, 0.04)');
-        spotGrad.addColorStop(0.5, 'rgba(255, 250, 240, 0.015)');
+      // Ultra-subtle, non-taxing ambient spotlight
+      if (
+        parallaxFactor > 0 &&
+        !visualConfig.reducedMotion &&
+        visualConfig.performanceMode !== 'performance'
+      ) {
+        const spotX = smoothMouseX * width;
+        const spotY = smoothMouseY * height;
+        const spotRadius = 260;
+        const spotGrad = ctx.createRadialGradient(spotX, spotY, 0, spotX, spotY, spotRadius);
+        spotGrad.addColorStop(0, 'rgba(255, 250, 240, 0.016)');
         spotGrad.addColorStop(1, 'rgba(255, 250, 240, 0)');
         ctx.fillStyle = spotGrad;
-        ctx.fillRect(0, 0, width, height);
+        ctx.beginPath();
+        ctx.arc(spotX, spotY, spotRadius, 0, Math.PI * 2);
+        ctx.fill();
       }
     };
 
@@ -376,10 +410,6 @@ export const AtmosphereCanvas: React.FC<{ mousePos: { x: number; y: number } }> 
     visualConfig.performanceMode,
     visualConfig.reducedMotion,
     parallaxFactor,
-    mousePos.x,
-    mousePos.y,
-    bgOffsetX,
-    bgOffsetY,
   ]);
 
   const fogOpacity = (visualConfig.fogIntensity / 100) * 0.62;
@@ -406,12 +436,7 @@ export const AtmosphereCanvas: React.FC<{ mousePos: { x: number; y: number } }> 
           className="absolute inset-0"
         >
           {imageSource ? (
-            <div
-              className="w-full h-full transition-transform duration-700 ease-out"
-              style={{
-                transform: `translate3d(${bgOffsetX}px, ${bgOffsetY}px, 0) scale(1.05)`,
-              }}
-            >
+            <div className="w-full h-full">
               <img
                 src={imageSource}
                 alt={currentScene.name}
@@ -427,9 +452,8 @@ export const AtmosphereCanvas: React.FC<{ mousePos: { x: number; y: number } }> 
             </div>
           ) : (
             <div
-              className="w-full h-full transition-transform duration-700 ease-out"
+              className="w-full h-full"
               style={{
-                transform: `translate3d(${bgOffsetX}px, ${bgOffsetY}px, 0) scale(1.05)`,
                 background: `radial-gradient(circle at 50% 40%, ${accentColor}35 0%, ${currentScene.secondaryGlow}22 45%, ${currentScene.bgBase} 88%)`,
               }}
             />
@@ -442,9 +466,8 @@ export const AtmosphereCanvas: React.FC<{ mousePos: { x: number; y: number } }> 
 
       {/* Layer 2: Midground Volumetric Fog & Atmospheric Glow */}
       <div
-        className="absolute inset-0 transition-transform duration-700 ease-out"
+        className="absolute inset-0"
         style={{
-          transform: `translate3d(${midOffsetX}px, ${midOffsetY}px, 0) scale(1.09)`,
           opacity: fogOpacity,
           background: `radial-gradient(ellipse 85% 60% at 50% 50%, ${accentColor}38 0%, transparent 74%)`,
         }}

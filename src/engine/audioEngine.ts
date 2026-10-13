@@ -413,6 +413,236 @@ class AuraAudioEngine {
         });
         break;
       }
+      case 'gamma-40hz':
+      case 'beta-20hz':
+      case 'beta-14hz':
+      case 'alpha-10hz':
+      case 'alpha-8hz':
+      case 'theta-6hz':
+      case 'schumann-783':
+      case 'delta-3hz': {
+        const beatHz =
+          id === 'gamma-40hz'
+            ? 40
+            : id === 'beta-20hz'
+            ? 20
+            : id === 'beta-14hz'
+            ? 14
+            : id === 'alpha-10hz'
+            ? 10
+            : id === 'alpha-8hz'
+            ? 8
+            : id === 'theta-6hz'
+            ? 6
+            : id === 'schumann-783'
+            ? 7.83
+            : 3;
+
+        // Carrier tailored to psychoacoustic comfort for each band
+        const carrier =
+          id === 'gamma-40hz'
+            ? 180
+            : id === 'beta-20hz'
+            ? 220
+            : id === 'beta-14hz'
+            ? 200
+            : id === 'alpha-10hz'
+            ? 210
+            : id === 'alpha-8hz'
+            ? 196
+            : id === 'theta-6hz'
+            ? 164
+            : id === 'schumann-783'
+            ? 136.1 // Om fundamental frequency
+            : 110; // Warm A2 for Delta
+
+        // Left ear carrier
+        const oscLeft = ctx.createOscillator();
+        const pannerLeft = ctx.createStereoPanner();
+        const gainLeft = ctx.createGain();
+        oscLeft.type = 'sine';
+        oscLeft.frequency.value = carrier;
+        pannerLeft.pan.value = -0.9;
+        gainLeft.gain.value = 0.22;
+        oscLeft.connect(pannerLeft);
+        pannerLeft.connect(gainLeft);
+        gainLeft.connect(gainNode);
+        oscLeft.start();
+
+        // Right ear carrier + delta (binaural beat)
+        const oscRight = ctx.createOscillator();
+        const pannerRight = ctx.createStereoPanner();
+        const gainRight = ctx.createGain();
+        oscRight.type = 'sine';
+        oscRight.frequency.value = carrier + beatHz;
+        pannerRight.pan.value = 0.9;
+        gainRight.gain.value = 0.22;
+        oscRight.connect(pannerRight);
+        pannerRight.connect(gainRight);
+        gainRight.connect(gainNode);
+        oscRight.start();
+
+        // Gentle warm harmonic drone bed
+        const sub = ctx.createOscillator();
+        const subGain = ctx.createGain();
+        sub.type = 'sine';
+        sub.frequency.value = carrier * 0.5;
+        subGain.gain.value = 0.08;
+        sub.connect(subGain);
+        subGain.connect(gainNode);
+        sub.start();
+
+        // Subtle pink noise acoustic blanket for warm comfort
+        startLoopedNoise('pink', 'lowpass', id === 'gamma-40hz' ? 260 : 200, 0.35);
+
+        disposers.push(() => {
+          try {
+            oscLeft.stop();
+            oscRight.stop();
+            sub.stop();
+            oscLeft.disconnect();
+            oscRight.disconnect();
+            sub.disconnect();
+          } catch {}
+        });
+        break;
+      }
+      case 'gamma-strobe': {
+        // 40Hz Isochronic acoustic pulse: sharp 40Hz envelope modulation on a clean 200Hz tone
+        const osc = ctx.createOscillator();
+        const lfo = ctx.createOscillator();
+        const modGain = ctx.createGain();
+        const ampGain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = 200;
+
+        lfo.type = 'sine';
+        lfo.frequency.value = 40; // 40Hz gamma pulse rate
+        modGain.gain.value = 0.22;
+        lfo.connect(modGain);
+        modGain.connect(ampGain.gain);
+
+        ampGain.gain.value = 0.2;
+        osc.connect(ampGain);
+        ampGain.connect(gainNode);
+
+        osc.start();
+        lfo.start();
+
+        startLoopedNoise('pink', 'lowpass', 240, 0.3);
+
+        disposers.push(() => {
+          try {
+            osc.stop();
+            lfo.stop();
+            osc.disconnect();
+            lfo.disconnect();
+          } catch {}
+        });
+        break;
+      }
+      case 'isochronic-pulse': {
+        const osc = ctx.createOscillator();
+        const lfo = ctx.createOscillator();
+        const modGain = ctx.createGain();
+        const ampGain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = 165; // Warm resonant G3
+
+        // 10Hz Alpha isochronic pulse rate
+        lfo.type = 'sine';
+        lfo.frequency.value = 10;
+        modGain.gain.value = 0.16;
+        lfo.connect(modGain);
+        modGain.connect(ampGain.gain);
+
+        ampGain.gain.value = 0.18;
+        osc.connect(ampGain);
+        ampGain.connect(gainNode);
+
+        osc.start();
+        lfo.start();
+
+        startLoopedNoise('brown', 'lowpass', 180, 0.4);
+
+        disposers.push(() => {
+          try {
+            osc.stop();
+            lfo.stop();
+            osc.disconnect();
+            lfo.disconnect();
+          } catch {}
+        });
+        break;
+      }
+      case 'solfeggio-528hz': {
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        const gain2 = ctx.createGain();
+
+        // Pure 528Hz frequency
+        osc1.type = 'sine';
+        osc1.frequency.value = 528;
+        gain1.gain.value = 0.14;
+        osc1.connect(gain1);
+        gain1.connect(gainNode);
+
+        // Lower octave 264Hz for warm foundation
+        osc2.type = 'sine';
+        osc2.frequency.value = 264;
+        gain2.gain.value = 0.1;
+        osc2.connect(gain2);
+        gain2.connect(gainNode);
+
+        osc1.start();
+        osc2.start();
+
+        disposers.push(() => {
+          try {
+            osc1.stop();
+            osc2.stop();
+            osc1.disconnect();
+            osc2.disconnect();
+          } catch {}
+        });
+        break;
+      }
+      case 'solfeggio-432hz': {
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        const gain2 = ctx.createGain();
+
+        // Pure 432Hz natural frequency
+        osc1.type = 'sine';
+        osc1.frequency.value = 432;
+        gain1.gain.value = 0.15;
+        osc1.connect(gain1);
+        gain1.connect(gainNode);
+
+        // Lower octave 216Hz for warm foundation
+        osc2.type = 'sine';
+        osc2.frequency.value = 216;
+        gain2.gain.value = 0.1;
+        osc2.connect(gain2);
+        gain2.connect(gainNode);
+
+        osc1.start();
+        osc2.start();
+
+        disposers.push(() => {
+          try {
+            osc1.stop();
+            osc2.stop();
+            osc1.disconnect();
+            osc2.disconnect();
+          } catch {}
+        });
+        break;
+      }
       default: {
         startLoopedNoise('brown', 'lowpass', 400, 0.7);
       }
