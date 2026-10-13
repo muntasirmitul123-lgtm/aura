@@ -301,13 +301,19 @@ export const FloatingChrome: React.FC<{
         }`}
       >
         <div className="flex items-center gap-2 md:gap-5 px-4 md:px-6 py-2.5 rounded-full bg-[#101114]/80 border border-[#F5F2EA]/10 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.75)]">
-          {/* Scene Switcher Trigger */}
+          {/* Scene Switcher Trigger with Live Photographic Thumbnail Badge */}
           <button
             onClick={() => auraActions.setActiveModal(activeModal === 'scenes' ? null : 'scenes')}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-full text-xs text-[#F5F2EA]/85 hover:text-[#F5F2EA] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-full text-xs text-[#F5F2EA]/90 hover:text-[#F5F2EA] transition-colors cursor-pointer whitespace-nowrap shrink-0 group"
             title="Choose Atmosphere (Shortcut: A)"
           >
-            <Compass className="w-3.5 h-3.5 text-[#92949A]" />
+            {currentScene.imageUrl ? (
+              <span className="w-4 h-4 rounded-full overflow-hidden border border-[#F5F2EA]/35 inline-block shrink-0 group-hover:scale-110 transition-transform shadow-[0_0_8px_rgba(245,242,234,0.2)]">
+                <img src={currentScene.imageUrl} alt="" className="w-full h-full object-cover" />
+              </span>
+            ) : (
+              <Compass className="w-3.5 h-3.5 text-[#92949A]" />
+            )}
             <span className="font-medium tracking-wide">{currentScene.name}</span>
             <span aria-hidden="true" className="hidden sm:inline text-[#92949A]/50">
               ·

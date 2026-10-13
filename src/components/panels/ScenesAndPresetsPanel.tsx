@@ -68,7 +68,7 @@ export const ScenesAndPresetsPanel: React.FC = () => {
       {/* Body */}
       <div className="p-6 overflow-y-auto space-y-6">
         {tab === 'scenes' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {visibleScenes.map((scene) => {
               const isSelected = scene.id === activeSceneId;
               return (
@@ -77,33 +77,46 @@ export const ScenesAndPresetsPanel: React.FC = () => {
                   onClick={() => auraActions.setScene(scene.id, true)}
                   className={`group relative text-left p-4 rounded-xl border transition-all duration-300 overflow-hidden cursor-pointer ${
                     isSelected
-                      ? 'bg-[#16181C] border-[#F5F2EA]/35 shadow-[0_0_30px_rgba(245,242,234,0.06)]'
-                      : 'bg-[#08090B]/60 border-[#F5F2EA]/8 hover:border-[#F5F2EA]/20'
+                      ? 'bg-[#16181C] border-[#F5F2EA]/45 shadow-[0_0_35px_rgba(245,242,234,0.08)]'
+                      : 'bg-[#08090B]/70 border-[#F5F2EA]/10 hover:border-[#F5F2EA]/30'
                   }`}
                 >
-                  {/* Subtle Ambient Accent Gradient Backdrop */}
-                  <div
-                    className="absolute inset-0 opacity-25 group-hover:opacity-40 transition-opacity pointer-events-none"
-                    style={{
-                      background: `radial-gradient(circle at 85% 20%, ${scene.accentColor}45 0%, transparent 70%)`,
-                    }}
-                  />
+                  {/* High-Definition Photographic Plate Preview */}
+                  {scene.imageUrl ? (
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      <img
+                        src={scene.imageUrl}
+                        alt={scene.name}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover opacity-35 group-hover:opacity-55 group-hover:scale-105 transition-all duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#101114] via-[#101114]/75 to-[#101114]/45" />
+                    </div>
+                  ) : (
+                    <div
+                      className="absolute inset-0 opacity-25 group-hover:opacity-45 transition-opacity pointer-events-none"
+                      style={{
+                        background: `radial-gradient(circle at 85% 20%, ${scene.accentColor}45 0%, transparent 70%)`,
+                      }}
+                    />
+                  )}
+
                   <div className="relative z-10 flex items-start justify-between gap-2">
                     <div>
-                      <div className="text-[10px] tracking-[0.22em] text-[#92949A] uppercase">
+                      <div className="text-[10px] tracking-[0.24em] text-[#92949A] uppercase font-medium">
                         {scene.locationLabel}
                       </div>
-                      <div className="mt-1 text-base font-medium text-[#F5F2EA] tracking-tight">
+                      <div className="mt-1 text-base font-semibold text-[#F5F2EA] tracking-tight">
                         {scene.name}
                       </div>
                     </div>
                     {isSelected && (
-                      <span className="text-[10px] tracking-[0.2em] uppercase text-[#F5F2EA]/80">
+                      <span className="px-2 py-0.5 rounded-full bg-[#F5F2EA]/15 text-[10px] tracking-[0.2em] uppercase text-[#F5F2EA] font-medium border border-[#F5F2EA]/20">
                         Active
                       </span>
                     )}
                   </div>
-                  <p className="relative z-10 mt-2 text-xs text-[#92949A] leading-relaxed">
+                  <p className="relative z-10 mt-2 text-xs text-[#92949A] leading-relaxed group-hover:text-[#F5F2EA]/90 transition-colors">
                     {scene.tagline}
                   </p>
                 </button>

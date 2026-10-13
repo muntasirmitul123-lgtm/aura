@@ -23,6 +23,8 @@ export interface SoundChannelSpec {
   description: string;
 }
 
+import { SCENE_IMAGES } from '../assets/images';
+
 export interface SceneSpec {
   id: SceneId;
   name: string;
@@ -62,7 +64,7 @@ export const SCENES: SceneSpec[] = [
     accentColor: '#5B7C99',
     secondaryGlow: '#C88A55',
     bgBase: '#07090D',
-    imageUrl: '/src/assets/images/scene_rainy_night_1791901424655.jpg',
+    imageUrl: SCENE_IMAGES['rainy-night'],
     particleType: 'rain',
     defaultClockStyle: 'minimal',
     defaultSounds: {
@@ -80,7 +82,7 @@ export const SCENES: SceneSpec[] = [
     accentColor: '#C88A55',
     secondaryGlow: '#4A5D6E',
     bgBase: '#0A0908',
-    imageUrl: '/src/assets/images/scene_midnight_cafe_1791901424509.jpg',
+    imageUrl: SCENE_IMAGES['midnight-cafe'],
     particleType: 'dust',
     defaultClockStyle: 'serif',
     defaultSounds: {
@@ -98,7 +100,7 @@ export const SCENES: SceneSpec[] = [
     accentColor: '#5B8270',
     secondaryGlow: '#4A6984',
     bgBase: '#070B09',
-    imageUrl: '/src/assets/images/scene_deep_forest_1791901425257.jpg',
+    imageUrl: SCENE_IMAGES['deep-forest'],
     particleType: 'mist-leaves',
     defaultClockStyle: 'minimal',
     defaultSounds: {
@@ -116,7 +118,7 @@ export const SCENES: SceneSpec[] = [
     accentColor: '#C69255',
     secondaryGlow: '#3D3226',
     bgBase: '#0A0806',
-    imageUrl: '/src/assets/images/scene_dark_library_1791901425528.jpg',
+    imageUrl: SCENE_IMAGES['dark-library'],
     particleType: 'dust',
     defaultClockStyle: 'serif',
     defaultSounds: {
@@ -134,6 +136,7 @@ export const SCENES: SceneSpec[] = [
     accentColor: '#567896',
     secondaryGlow: '#2A3F54',
     bgBase: '#06090E',
+    imageUrl: SCENE_IMAGES['moonlit-ocean'],
     particleType: 'ocean-mist',
     defaultClockStyle: 'minimal',
     defaultSounds: {
@@ -151,6 +154,7 @@ export const SCENES: SceneSpec[] = [
     accentColor: '#D08752',
     secondaryGlow: '#496580',
     bgBase: '#0B0908',
+    imageUrl: SCENE_IMAGES['winter-cabin'],
     particleType: 'snow',
     defaultClockStyle: 'flip',
     defaultSounds: {
@@ -168,6 +172,7 @@ export const SCENES: SceneSpec[] = [
     accentColor: '#7B68A6',
     secondaryGlow: '#3F5E8A',
     bgBase: '#050609',
+    imageUrl: SCENE_IMAGES['deep-space'],
     particleType: 'stars',
     defaultClockStyle: 'minimal',
     defaultSounds: {
@@ -185,7 +190,7 @@ export const SCENES: SceneSpec[] = [
     accentColor: '#4E8FA8',
     secondaryGlow: '#A35678',
     bgBase: '#07080C',
-    imageUrl: '/src/assets/images/scene_rainy_night_1791901424655.jpg',
+    imageUrl: SCENE_IMAGES['cyberpunk-rain'],
     particleType: 'cyber-rain',
     defaultClockStyle: 'word',
     defaultSounds: {

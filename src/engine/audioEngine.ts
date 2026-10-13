@@ -128,7 +128,7 @@ class AuraAudioEngine {
       targetArray.fill(0);
       return false;
     }
-    this.analyser.getByteFrequencyData(targetArray);
+    this.analyser.getByteFrequencyData(targetArray as unknown as Uint8Array<ArrayBuffer>);
     return true;
   }
 

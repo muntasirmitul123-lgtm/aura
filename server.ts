@@ -320,6 +320,10 @@ For each block specify: timeRange (e.g. "19:30 — 20:20"), label (e.g. "Physics
 });
 
 async function startServer() {
+  const publicPath = path.join(__dirname, 'public');
+  app.use(express.static(publicPath));
+  app.use('/scenes', express.static(path.join(publicPath, 'scenes')));
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
